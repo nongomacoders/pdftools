@@ -90,6 +90,54 @@ def extract():
         messagebox.showerror("Error", f"Extraction failed:\n{e}")
 
 
+def rotate_180():
+    input_path = input_var.get().strip()
+    output_path = output_var.get().strip()
+
+    if not input_path:
+        messagebox.showwarning("Missing input", "Please select an input PDF file.")
+        return
+    if not output_path:
+        messagebox.showwarning("Missing output", "Please specify an output file path.")
+        return
+
+    try:
+        start = int(start_var.get())
+        end = int(end_var.get())
+    except ValueError:
+        messagebox.showerror("Invalid range", "Page numbers must be integers.")
+        return
+
+    try:
+        reader = PdfReader(input_path)
+        total = len(reader.pages)
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not read PDF:\n{e}")
+        return
+
+    if start < 1 or end < 1 or start > end or end > total:
+        messagebox.showerror(
+            "Invalid range",
+            f"Page range must be between 1 and {total}, with start \u2264 end.",
+        )
+        return
+
+    try:
+        writer = PdfWriter()
+        for i in range(start - 1, end):
+            page = reader.pages[i]
+            page.rotate(180)
+            writer.add_page(page)
+        with open(output_path, "wb") as f:
+            writer.write(f)
+        messagebox.showinfo(
+            "Done",
+            f"Rotated pages {start}\u2013{end} 180\u00b0 ({end - start + 1} page(s))\nSaved to:\n{output_path}",
+        )
+    except Exception as e:
+        messagebox.showerror("Error", f"Rotation failed:\n{e}")
+
+
 # ── Window ──────────────────────────────────────────────────────────────────
 root = tk.Tk()
 root.title("PDF Page Extractor")
@@ -130,9 +178,11 @@ output_var = tk.StringVar()
 ttk.Entry(frame, textvariable=output_var, width=48).grid(row=3, column=1, sticky="ew", **PAD)
 ttk.Button(frame, text="Browse…", command=select_output_file).grid(row=3, column=2, **PAD)
 
-# ── Extract button ───────────────────────────────────────────────────────────
-ttk.Button(frame, text="Extract Pages", command=extract).grid(
-    row=4, column=0, columnspan=3, pady=(12, 4)
-)
+# ── Action buttons ───────────────────────────────────────────────────────────
+btn_frame = ttk.Frame(frame)
+btn_frame.grid(row=4, column=0, columnspan=3, pady=(12, 4))
+
+ttk.Button(btn_frame, text="Extract Pages", command=extract).grid(row=0, column=0, padx=6)
+ttk.Button(btn_frame, text="Rotate 180°", command=rotate_180).grid(row=0, column=1, padx=6)
 
 root.mainloop()
